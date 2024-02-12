@@ -1,9 +1,13 @@
-/*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@                                                                                          @@              
-@@ PROJECT NAME : Customized Virtual file System                                            @@
-@@                                                                                          @@
-@@                                                                                          @@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+/*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@                                                                                                      																				  @@				
+@@ PROJECT NAME  :  Customized Virtual file System                         																												  @@		                   
+@@ Author        :  Sumit Anil Anarase                                                      																							  @@		
+@@ Description   :  • This project provides all functionality to the user which is same as Linux File system. 																			  @@
+@@                  • It provides necessary commands, system calls implementations of file system through customised shell. 															  @@
+@@                  • In this project we implement all necessary data structures of file system like Incore Inode Table, File Table, UAREA, User File Descriptor table. 				  @@
+@@					• Using this project we can use every system level functionality of Linux operating system on any other operating system platform.  								  @@
+@@					• We provide our own customised shell to interact with the customised database management system.                                                                     @@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 */
 
 /*|||||||||||||||||||||||||||||||||||||||||||||
@@ -16,7 +20,8 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
-#include<io.h>
+#include<unistd.h>
+#include<iostream>
 
 //||||||||||||||||||||||||||||||||||||||||||
 //
@@ -28,12 +33,12 @@
 #define READ 1
 #define WRITE 2 // Give Permission as 3 for both READ AND WRITE 
 
-#define MAXFILESIZE 1024 // Maximum Size of A File (1024 = 1kb)
+#define MAXFILESIZE 1024 // Maximum Size of A File (1024 = 1kb) // buffer sathi kelel malloc
 
 #define REGULAR 1 // ie REGULAR File
-#define SPECIAL 2 // .txt , .pdf etc all types of file 
+#define SPECIAL 2 // .txt , .pdf etc all types of file  
 
-#define START 0   // FILE offset (lseek)
+#define START 0   // FILE offset (lseek) function 
 #define CURRENT 1 
 #define END 2    
 
@@ -45,8 +50,8 @@
 
 typedef struct superblock
 {
-    int TotalInodes;    // size is 50 for both 
-    int FreeInodes;
+    int TotalInodes;    // size is 50 for both  // Initally 50 ahe value 
+    int FreeInodes;      // Initally 50 ahe value  
 }SUPERBLOCK, *PSUPERBLOCK;
 
 ////////////////////////////////////////////////////////
@@ -59,14 +64,14 @@ typedef struct inode   //// 86 bytes allocated for this block
 {
     char FileName[50];                // File name stored 
     int InodeNumber;                 // inode number 
-    int FileSize;                   // 1024 byte
+    int FileSize;                   // 1024 byteq
     int FileActualSize;            // allocated when we write into it ie 10 bytes of data
-    int FileType;                 // type of file 
-    char *Buffer;                // on windows it stores block number but in this 1024kb
-    int LinkCount;              // linking count
-    int ReferenceCount;        // reference count 
-    int permission;           // read write permission 
-    struct inode *next;      // self referential structure
+    int FileType;                 // type of file  // 1 ch ahe apan dusarli suppot nshi karat
+    char *Buffer;                // on windows it stores block number but in this 1024kb  // pointing to block threr are data
+    int LinkCount;              // linking count // short cut vaprto . tevha 2 copies hotyat ..aplyat one ch ahe // linking chi kam // hard lin and soft link
+    int ReferenceCount;        // reference count //how many time we opend file // how refrences refer that 
+    int permission;           // read write permission // value either 1 or2 or 3 // creater n dilel 
+    struct inode *next;      // self referential structure //  to hold the address of next node
 
 } INODE, *PINODE , **PPINODE;
 
@@ -80,17 +85,17 @@ typedef struct filetable
 {
     int readoffset;                // from where to read
     int writeoffset;               // from where to write 
-    int count;                     // Remains 1 throught the code 
-    int mode;                      // mode of file 
-    PINODE ptrinode;                // pointer , linkedList point to Inode
+    int count;                     // Remains 1 throught the code  // it get increase when it born a new child process
+    int mode;                      // mode of file  // mode when opened file
+    PINODE ptrinode;                // pointer , linkedList point to Inode  // pointer => inode
 }FILETABLE, *PFILETABLE;
 
 //////////////////////////////////////////////////////////////
 //
-/// Creating UFDT Structure 
+//\/ Creating UFDT Structure 
 //
 /////////////////////////////////////////////////////////////
-
+// in acutal os there are structure name as ufdt .. its not fare to create a structure of single var
 typedef struct ufdt
 {
     PFILETABLE ptrfiletable;    // create ufdt structure , // Pointer which points to file table
@@ -220,7 +225,7 @@ void DisplayHelp()
     printf("stat        :   To Display information of file using name\n"); 
     printf("fstat       :   To Display information of file using file descriptor\n"); 
     printf("truncate    :   To Remove all data from file\n"); 
-    printf("rm          :   To Delet the file\n");
+    printf("rm          :   To Delete the file\n");
     printf("backup      :   To Take Backup Of All Created Files\n");
 }
 
@@ -268,7 +273,7 @@ int GetFDFromName(char *name)
 //   Author              :   Sumit Anil Anarase
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-PINODE Get_Inode(char * name)
+PINODE Get_Inode(char * name)  //(hello.txt)
 {
     PINODE temp = head;
     int i = 0;
@@ -279,7 +284,7 @@ PINODE Get_Inode(char * name)
     }
     while(temp != NULL)
     {
-        if(strcmp(name , temp ->FileName)==0)
+        if(strcmp(name , temp ->FileName)==0) 
         {
             break;
         }
@@ -352,7 +357,7 @@ void InitialiseSuperBlock()
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 //
-//    Function Name      :     CreateFile 
+//    Function Name       :     CreateFile 
 //    Input               :    char* , Integer
 //    output              :    None
 //    Description         :    Create new files 
@@ -362,26 +367,26 @@ void InitialiseSuperBlock()
 
 int CreateFile(char * name , int permission)
 {
-    int i =0;
+    int i =0; //  jar aplyala pahile 3 reserved thevyachya astil tr i set to 3
     PINODE temp = head;
 
     if((name == NULL) || (permission == 0) || (permission >3))
     {
-        return -1;
+        return -1; //  error code in main -> invalid parameter 
     }
-    if(SUPERBLOCKobj.FreeInodes ==0)
+    if(SUPERBLOCKobj.FreeInodes ==0) 
     {
         return -2;
     }
-    (SUPERBLOCKobj.FreeInodes)--;
+    (SUPERBLOCKobj.FreeInodes)--;  // apan global record la sangto ki count -- ,  we book the inode//  in real os 1 time 1 ch jau shakto i.e mutex, syncronization
 
-    if(Get_Inode(name) != NULL)
+    if(Get_Inode(name) != NULL)    // travel karanr ani check karanr nav same ahe kaa.. nasel trr return -1;
     {
-        return -3;
+        return -3;  //  file is alreay exixsting
     }
     while(temp  != NULL)
     {
-        if(temp->FileType ==0)
+        if(temp->FileType ==0)  // apan rikama node shodhatoy .. rikama inode madhe file type 0 aste
         {
             break;
         }
@@ -395,28 +400,28 @@ int CreateFile(char * name , int permission)
         }
         i++;
     }
-    UFDTArr[i].ptrfiletable = (PFILETABLE)malloc(sizeof(FILETABLE));
+    UFDTArr[i].ptrfiletable = (PFILETABLE)malloc(sizeof(FILETABLE)); // second layer of on diagram created (big diagram)
     if(UFDTArr[i].ptrfiletable ==  NULL)
     {
         return -4;
     }
-    UFDTArr[i].ptrfiletable->count=1;
+    UFDTArr[i].ptrfiletable->count=1; // count nehami 1 ahe karan jevhya apan navin process la janm deto tevhya 2 honar atta aoan te karat nahi
     UFDTArr[i].ptrfiletable->mode = permission;
     UFDTArr[i].ptrfiletable->readoffset =0;
     UFDTArr[i].ptrfiletable->writeoffset =0;
 
-    UFDTArr[i].ptrfiletable->ptrinode = temp;
+    UFDTArr[i].ptrfiletable->ptrinode = temp; // conecting a 3rd layer
 
-    strcpy(UFDTArr[i].ptrfiletable->ptrinode ->FileName , name);
+    strcpy(UFDTArr[i].ptrfiletable->ptrinode ->FileName , name); // copy the data
     UFDTArr[i].ptrfiletable->ptrinode->FileType = REGULAR;
-    UFDTArr[i].ptrfiletable->ptrinode->ReferenceCount = 1;
-    UFDTArr[i].ptrfiletable->ptrinode->LinkCount=1;
+    UFDTArr[i].ptrfiletable->ptrinode->ReferenceCount = 1;// how many time we opend the file
+    UFDTArr[i].ptrfiletable->ptrinode->LinkCount=1;  // we dont use shortcuts thats why 1
     UFDTArr[i].ptrfiletable->ptrinode->FileSize = MAXFILESIZE;
     UFDTArr[i].ptrfiletable->ptrinode->FileActualSize = 0;
     UFDTArr[i].ptrfiletable->ptrinode->permission = permission;
-    UFDTArr[i].ptrfiletable->ptrinode->Buffer = (char*)malloc(MAXFILESIZE);
+    UFDTArr[i].ptrfiletable->ptrinode->Buffer = (char*)malloc(MAXFILESIZE); // we get data block madhal one cell
 
-    memset(UFDTArr[i].ptrfiletable->ptrinode->Buffer , 0, 1024);
+    memset(UFDTArr[i].ptrfiletable->ptrinode->Buffer , 0, 1024);   
 
     return i;
 }
@@ -488,17 +493,17 @@ int ReadFile(int fd , char *arr , int iSize)
         return -4;
     }
     if(UFDTArr[fd].ptrfiletable -> ptrinode -> FileType != REGULAR)	
-    	{
+    {
         	return -5;         
-    	} 
+    } 
 
-    	if(UFDTArr[fd].ptrfiletable -> ptrinode -> FileType != REGULAR)
-    	{
-        	return -6;
-    	}
+    if(UFDTArr[fd].ptrfiletable -> ptrinode -> FileType != REGULAR)
+    {
+    	return -6;
+    }
     
     read_size = (UFDTArr[fd].ptrfiletable->ptrinode->FileActualSize) - (UFDTArr[fd].ptrfiletable->readoffset);
-
+// if jar file size is 10 bytes .. readoffset 5 la aella ahe .. 5 offset chya pudhchya kiti 5
     if(read_size < iSize)
     {
         strncpy(arr,(UFDTArr[fd].ptrfiletable->ptrinode->Buffer)+(UFDTArr[fd].ptrfiletable->readoffset),read_size);
@@ -822,7 +827,7 @@ int LseekFile(int fd, int size, int from)
 //	Output			: 	None
 //	Description 	: 	List Out All Existing Files Name
 //	Author			: 	Sumit Anil Anarase
-//	         			:	     
+//	         			     
 //
 //######################################################################################
 
@@ -932,47 +937,47 @@ int stat_file(char *name)
 	int i = 0; 
 
 	if(name == NULL) 
-    	{
-        	return -1;
-    	}
+    {
+        return -1;
+    }
 	
 	while(temp != NULL)
 	{
 		if(strcmp(name, temp -> FileName) == 0)
-        	{
-            		break;
-        	}
+        {
+            break;
+        }
 		temp = temp -> next;
 	} 
 
 	if(temp == NULL) 
-    	{
-        	return -2; 
-    	}
+    {
+        return -2; 
+    }
 
 	printf("\n---------Statistical Information about file-----------\n");
 	
-    	printf("File name : %s\n", temp -> FileName);
-	printf("Inode Number %d\n", temp -> InodeNumber);
-	printf("File size : %d\n", temp -> FileSize);
+    printf("File name        : %s\n", temp -> FileName);
+	printf("Inode Number     : %d\n", temp -> InodeNumber);
+	printf("File size        : %d\n", temp -> FileSize);
 	printf("Actual File size : %d\n", temp -> FileActualSize);
-	printf("Link count : %d\n", temp -> LinkCount);
-	printf("Reference count : %d\n", temp -> ReferenceCount); 
+	printf("Link count       : %d\n", temp -> LinkCount);
+	printf("Reference count  : %d\n", temp -> ReferenceCount); 
 
 	if(temp -> permission == 1)
-    	{
-        	printf("File Permission : Read only\n");
-    	}
+    {
+        printf("File Permission : Read only\n");
+    }
 		
 	else if(temp -> permission == 2)
-    	{
-        	printf("File Permission : Write\n");
-    	}
+    {
+        printf("File Permission : Write\n");
+    }
 		
 	else if(temp -> permission == 3)
-    	{
-        	printf("File Permission : Read & Write\n");
-    	}
+    {
+        printf("File Permission : Read & Write\n");
+    }
 		
 	printf(" ------------------------------------------------------\n\n"); 
 	
@@ -1057,8 +1062,8 @@ int main()
 
 	int ret = 0, fd = 0, count = 0;
 	char command[4][80], str[80], arr[MAXFILESIZE]; 
-
-	InitialiseSuperBlock();
+/// char command[4][80] : 2D Array  
+	InitialiseSuperBlock(); // auixilary data
 	CreateDILB(); 
 
 	while(1)
@@ -1066,12 +1071,14 @@ int main()
 		fflush(stdin);
 		strcpy(str, ""); 
 		
-		printf("\nCustomised VFS : > "); 
+		// we can also use mem set // which used to copy
+		printf("\n Marvellous Customised VFS : > "); 
 
-		fgets(str, 80, stdin); // scanf("%[^'\n']s",str);
+		fgets(str, 80, stdin); // scanf("%[^'\n']s",str);  // getline  fgets(Kashat , kiti , kuthin(KeyBoard))
 
-		count = sscanf(str,"%s %s %s %s", command[0], command[1], command[2], command[3]); 
-
+		count = sscanf(str,"%s %s %s %s", command[0], command[1], command[2], command[3]);  //  its like sugarken apan te cut cut karto  //  it is tokenization
+		// sscanf =  string madhe scan karun de  //  mi keyborad madhun input nahi ghenar mi string madhun ghenar 
+		// strtok() <string.h>
 		if(count == 1)
 		{
 			if(strcmp(command[0], "ls") == 0)
@@ -1097,11 +1104,11 @@ int main()
 				continue;
 			}
 
-            		else if(strcmp(command[0], "backup") == 0)
-            		{
-                		backup();
-                		continue;
-            		}
+       		else if(strcmp(command[0], "backup") == 0)
+      		{
+         		backup();
+          		continue;
+    		}
 
 			else if(strcmp(command[0], "exit") == 0)
 			{
@@ -1122,15 +1129,15 @@ int main()
 			{
 				ret = stat_file(command[1]);
 				if(ret == -1)
-                		{
-                   	 		printf("ERROR : Incorrect parameters\n");
-                		}
+                {
+                   	printf("ERROR : Incorrect parameters\n");
+                }
 					
 				if(ret == -2)
-                		{
-                    			printf("ERROR : There is no such file\n");
-                		}
-                		continue;
+                {
+                    printf("ERROR : There is no such file\n");
+                }
+                continue;
 			}
 
 			else if(strcmp(command[0], "fstat") == 0) //fstat 0
@@ -1185,7 +1192,7 @@ int main()
 			{
 				fd = GetFDFromName(command[1]);
 				
-                		if(fd == -1)
+                if(fd == -1)
 				{
 					printf("Error : Incorrect parameter\n");
 					continue;
@@ -1211,29 +1218,29 @@ int main()
 					continue;
 				}
 
-				ret = WriteFile(fd,arr,ret); // 0, Adress, 4
+				ret = WriteFile(fd,arr,ret); // 0, Adress, 4   //kashat lihaychy , kay lihaychy  , kiti lihyachy
 
 				if(ret == -1)
-                		{
-                    			printf("ERROR : Permission denied\n");
-                		}
+                {
+                    printf("ERROR : Permission denied\n");
+                }
 					
 				if(ret == -2)
-                		{
-                    			printf("ERROR : There is no sufficient memory to write\n");
-                		}
+                {
+                    printf("ERROR : There is no sufficient memory to write\n");
+                }
 					
 				if(ret == -3)
-                		{
-                    			printf("ERROR : It is not regular file\n");
-                		}
+                {
+                    printf("ERROR : It is not regular file\n");
+                }
 
 				if(ret == -4)
 				{
 					printf("ERROR:There is no sufficient memory Available\n");
 				}
 
-                		if(ret > 0)
+                if(ret > 0)
 				{
 					printf("Sucessfully : %d bytes written\n", ret);
 				}
@@ -1244,9 +1251,9 @@ int main()
 				ret = truncate_File(command[1]);
 
 				if(ret == -1)
-                		{
-                    			printf("Error : Incorrect parameter\n");
-                		}
+            	{
+                    printf("Error : Incorrect parameter\n");
+                }
 			}	
 
 			else	
@@ -1260,29 +1267,29 @@ int main()
 		{
 			if(strcmp(command[0], "create") == 0)
 			{
-				ret = CreateFile(command[1], atoi(command[2])); // ASCII to Integer
+						ret = CreateFile(command[1], atoi(command[2])); // ASCII to Integer  // jevha apan input ghetal 3 ani te string madhe hot so 3 chi value 51 tyamul convert kel 51 to 3
 		
-				if(ret >= 0)
-				{
+						if(ret >= 0)
+						{
                     			printf("File is successfully created with file descriptor : %d\n", ret);
                 		}
 					
-				if(ret == -1)
+						if(ret == -1)
                 		{
                     			printf("ERROR : Incorrect parameters\n");
                 		}
 					
-				if(ret == -2)
+						if(ret == -2)
                 		{
                     			printf("ERROR : There is no inodes\n");
                 		}
 					
-				if(ret == -3)
+						if(ret == -3)
                 		{
                     			printf("ERROR : File already exists\n");
                 		}
 					
-				if(ret == -4)
+						if(ret == -4)
                 		{
                     			printf("ERROR : Memory allocation failure\n");
                 		}
@@ -1294,25 +1301,25 @@ int main()
 				ret = OpenFile(command[1], atoi(command[2]));
 		
 				if(ret >= 0)
-                		{
-                    			printf("File is successfully opened with file descriptor : %d\n", ret);
-                		}
+                {
+                    printf("File is successfully opened with file descriptor : %d\n", ret);
+                }
 					
 				if(ret == -1)
-                		{
-                    			printf("ERROR : Incorrect parameters\n");
-                		}
+                {
+                    printf("ERROR : Incorrect parameters\n");
+                }
 					
 				if(ret == -2)
-                		{
-                   	 		printf("ERROR : File not present\n");
-                		}
+                {
+                   	printf("ERROR : File not present\n");
+                }
 					
 				if(ret == -3)
-                		{
-                    			printf("ERROR : Permission denied\n");
-                		}
-                		continue;
+                {
+                    printf("ERROR : Permission denied\n");
+                }
+                	continue;
 			}
 
 			else if(strcmp(command[0], "read") == 0)
@@ -1341,29 +1348,29 @@ int main()
                 }
 					
 				if(ret == -2)
-                		{
-                    			printf("ERROR : Permission denied\n");
-                		}
+                {
+                    printf("ERROR : Permission denied\n");
+                }
 					
 				if(ret == -3)
-                		{
-                    			printf("ERROR : Reached at end of file\n");
-                		}
+                {
+                		printf("ERROR : Reached at end of file\n");
+                }
 					
 				if(ret == -4)
-                		{
-                    			printf("ERROR : It is not regular file\n");
-                		}	
+                {
+                    printf("ERROR : It is not regular file\n");
+                }	
 
-                		if (ret == -5)
-                		{
-                    			printf("ERROR : File is not opened\n");
-                		}
+                if (ret == -5)
+                {
+                    printf("ERROR : File is not opened\n");
+                }
 					
 				if(ret == 0)
-                		{
-                    			printf("ERROR : File empty\n");
-                		}
+                {
+                    printf("ERROR : File empty\n");
+                }
 					
 				if(ret > 0)
 				{
@@ -1393,15 +1400,15 @@ int main()
 				
 				ret = LseekFile(fd, atoi(command[2]), atoi(command[3]));
 				
-                		if(ret == -1)
+                if(ret == -1)
 				{
 					printf("ERROR : Unable to perform lseek\n");
 				}
 
-                		if (ret == -2)
-                		{
-                    			printf("ERROR : File is not opened\n");
-                		}
+                if (ret == -2)
+                {
+                    printf("ERROR : File is not opened\n");
+                }
 			}
 
 			else
